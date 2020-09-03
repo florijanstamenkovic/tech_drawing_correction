@@ -4,6 +4,7 @@ import random
 
 import numpy as np
 from PIL import Image
+import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 
@@ -65,8 +66,8 @@ class _Dataset(Dataset):
 
         x_crop = x[crop_h:crop_h + SIDE_LENGTH, crop_w:crop_w + SIDE_LENGTH]
 
-        return (transforms.functional.to_tensor(x),
-                transforms.functional.to_tensor(y))
+        return (torch.FloatTensor(np.expand_dims(x_crop, axis=0)),
+                np.expand_dims(torch.FloatTensor(y_crop), axis=0))
 
 
 class TrainDataset(_Dataset):
