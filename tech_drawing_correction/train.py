@@ -22,7 +22,7 @@ def main():
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), lr=0.003, momentum=0.9,
                           nesterov=True)
-    scheduler = optim.lr_scheduler.MultiplicativeLR(optimizer, lr_lambda=lambda epoch: 0.95)
+    # scheduler = optim.lr_scheduler.MultiplicativeLR(optimizer, lr_lambda=lambda epoch: 0.95)
 
     LOGGER.info("Loading data")
     trainset = data.TrainDataset()
@@ -45,7 +45,7 @@ def main():
             loss = criterion(prediction, y)
             loss.backward()
             optimizer.step()
-            scheduler.step()
+            # scheduler.step()
 
             # print statistics
             losses.append(loss.item())
@@ -62,16 +62,20 @@ def main():
                     x = x.to(device)
                     y = y.to(device)
                     prediction = model(x)
-                    for i in range(3):
+                    losses.append(criterion(prediction, y).item())
+
+                    if i != 0:
+                        continue
+
+                    for j in range(3):
                         for t, name in zip((x, y, prediction), ("dirty", "orig", "fixed")):
-                            img_np = np.maximum(np.minimum(t[i][0].cpu().detach().numpy() * 255,
+                            img_np = np.maximum(np.minimum(t[j][0].cpu().detach().numpy() * 255,
                                                            255), 0)
                             img = Image.fromarray(img_np.astype(np.uint8))
                             os.makedirs("output", exist_ok=True)
                             img.convert("RGB").save("output/test_epoch_%04d_%d_%s.png" % (
-                                epoch, i, name))
+                                epoch, j, name))
 
-                    losses.append(criterion(prediction, y).item())
                 print("Test set loss: ", statistics.mean(losses))
 
 
