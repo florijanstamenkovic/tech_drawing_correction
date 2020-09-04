@@ -24,27 +24,62 @@ class ConvBNRelu(nn.Module):
         return self.block(x)
 
 
+class Bottleneck(nn.Module):
+    CONTRACTION = 2
+
+    def __init__(self, channels):
+        super().__init__()
+
+        self.block1 = ConvBNRelu(channels, channels // Bottleneck.CONTRACTION)
+        self.block2 = ConvBNRelu(channels // Bottleneck.CONTRACTION, channels)
+
+    def forward(self, x):
+        out = self.block1(x)
+        out = self.block2(out)
+        out = out + x
+        return out
+
+
+class Combine(nn.Module):
+
+    def __init__(self, use_conv, shallow_channels, deep_channels, scale=2):
+        super().__init__()
+        self._use_conv = use_conv
+        self._scale = scale
+        if use_conv:
+            self._conv = ConvBNRelu(shallow_channels + deep_channels,
+                                    shallow_channels)
+
+    def forward(self, deep, shallow):
+        deep = F.interpolate(deep, scale_factor=self._scale, mode='bilinear')
+        if self._use_conv:
+            out = torch.cat([deep, shallow], dim=1)
+            return self._conv(out)
+        else:
+            return deep + shallow
+
+
 class Network(nn.Module):
 
     def __init__(self):
         super().__init__()
 
-        self.conv1 = ConvBNRelu(1, 32)
+        self.conv1 = ConvBNRelu(1, 64)
         self.pool1 = nn.MaxPool2d(2)  # 1/2
-        self.combine1 = ConvBNRelu(64, 32, (1, 1), 0)
+        self.combine1 = Combine(True, 64, 64)
 
-        self.conv2 = ConvBNRelu(32, 64)
+        self.conv2 = Bottleneck(64)
         self.pool2 = nn.MaxPool2d(2)  # 1/4
-        self.combine2 = ConvBNRelu(128, 32, (1, 1), 0)
+        self.combine2 = Combine(True, 64, 64)
 
-        self.conv3 = ConvBNRelu(64, 128)
+        self.conv3 = Bottleneck(64)
         self.pool3 = nn.MaxPool2d(2)  # 1/8
-        self.combine3 = ConvBNRelu(256, 64, (1, 1), 0)
+        self.combine3 = Combine(True, 64, 64)
 
-        self.conv4 = ConvBNRelu(128, 128)
+        self.conv4 = Bottleneck(64)
         self.pool4 = nn.MaxPool2d(2)  # 1/16
 
-        self.final = ConvBNRelu(32, 1, (1, 1), 0)
+        self.final = ConvBNRelu(64, 1, (1, 1), 0)
 
     def forward(self, x):
         out1 = self.pool1(self.conv1(x))  # 1/2
@@ -52,13 +87,9 @@ class Network(nn.Module):
         out3 = self.pool3(self.conv3(out2))  # 1/8
         out4 = self.pool4(self.conv4(out3))  # 1/16
 
-        def decode(out_higher, out_lower, combine):
-            up = F.interpolate(out_lower, scale_factor=2, mode='bilinear')
-            return combine(torch.cat([out_higher, up], dim=1))
-
-        out = decode(out3, out4, self.combine3) # 1/8
-        out = decode(out2, out, self.combine2)  # 1/4
-        out = decode(out1, out, self.combine1)  # 1/2
+        out = self.combine3(out4, out3) # 1/8
+        out = self.combine2(out, out2) # 1/4
+        out = self.combine1(out, out1) # 1/2
 
         out = F.interpolate(out, scale_factor=2, mode='bilinear')
         out = self.final(out)

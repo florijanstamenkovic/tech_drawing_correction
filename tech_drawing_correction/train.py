@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 import logging
 import os
 import statistics
@@ -15,6 +16,10 @@ LOGGER = logging.getLogger(__name__)
 
 
 def main():
+    argp = ArgumentParser()
+    argp.add_argument("--epochs", type=int, default=60)
+    args = argp.parse_args()
+
     LOGGER.info("Preparing model")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = network.Network()
@@ -22,18 +27,19 @@ def main():
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), lr=0.003, momentum=0.9,
                           nesterov=True)
-    scheduler = optim.lr_scheduler.MultiplicativeLR(optimizer, lr_lambda=lambda epoch: 0.95)
+    scheduler = optim.lr_scheduler.MultiplicativeLR(
+        optimizer, lr_lambda=lambda epoch: 0.95)
 
     LOGGER.info("Loading data")
     trainset = data.TrainDataset()
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=6,
-                                              shuffle=True, num_workers=2)
+    trainloader = torch.utils.data.DataLoader(
+        trainset, batch_size=6, shuffle=True, num_workers=4)
     testset = data.TestDataset()
-    testloader = torch.utils.data.DataLoader(testset, batch_size=6,
-                                             shuffle=False, num_workers=2)
+    testloader = torch.utils.data.DataLoader(
+        testset, batch_size=6, shuffle=False, num_workers=2)
 
     LOGGER.info("Training")
-    for epoch in range(200):
+    for epoch in range(args.epochs):
         model.train()
         losses = []
         for i, batch in enumerate(trainloader):
@@ -46,12 +52,9 @@ def main():
             loss.backward()
             optimizer.step()
             scheduler.step()
-
-            # print statistics
             losses.append(loss.item())
-            if (i == 0 and epoch == 0) or i % 10 == 9:
-                print('[%d, %5d] loss: %.3f' % (epoch, i, statistics.mean(losses)))
-                losses = []
+
+        print('Epoch %03d avg. loss: %.3f' % (epoch, statistics.mean(losses)))
 
         if epoch % 5 == 4:
             with torch.no_grad():
