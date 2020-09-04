@@ -44,7 +44,7 @@ class Network(nn.Module):
         self.conv4 = ConvBNRelu(128, 128)
         self.pool4 = nn.MaxPool2d(2)  # 1/16
 
-        self.combine0 = ConvBNRelu(33, 1, (1, 1), 0)
+        self.final = ConvBNRelu(32, 1, (1, 1), 0)
 
     def forward(self, x):
         out1 = self.pool1(self.conv1(x))  # 1/2
@@ -59,8 +59,10 @@ class Network(nn.Module):
         out = decode(out3, out4, self.combine3) # 1/8
         out = decode(out2, out, self.combine2)  # 1/4
         out = decode(out1, out, self.combine1)  # 1/2
-        out = decode(x, out, self.combine0)     # 1/2
 
+        out = F.interpolate(out, scale_factor=2, mode='bilinear')
+        out = self.final(out)
+        out = x + out
         return out
 
 

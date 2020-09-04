@@ -22,7 +22,7 @@ def main():
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), lr=0.003, momentum=0.9,
                           nesterov=True)
-    # scheduler = optim.lr_scheduler.MultiplicativeLR(optimizer, lr_lambda=lambda epoch: 0.95)
+    scheduler = optim.lr_scheduler.MultiplicativeLR(optimizer, lr_lambda=lambda epoch: 0.95)
 
     LOGGER.info("Loading data")
     trainset = data.TrainDataset()
@@ -45,7 +45,7 @@ def main():
             loss = criterion(prediction, y)
             loss.backward()
             optimizer.step()
-            # scheduler.step()
+            scheduler.step()
 
             # print statistics
             losses.append(loss.item())
