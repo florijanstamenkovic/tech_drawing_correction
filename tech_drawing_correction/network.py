@@ -42,13 +42,12 @@ class Bottleneck(nn.Module):
 
 class Combine(nn.Module):
 
-    def __init__(self, use_conv, shallow_channels, deep_channels, scale=2):
+    def __init__(self, use_conv, in_channels, out_channels, scale=2):
         super().__init__()
         self._use_conv = use_conv
         self._scale = scale
         if use_conv:
-            self._conv = ConvBNRelu(shallow_channels + deep_channels,
-                                    shallow_channels)
+            self._conv = ConvBNRelu(in_channels, out_channels, (1, 1), 0)
 
     def forward(self, deep, shallow):
         deep = F.interpolate(deep, scale_factor=self._scale, mode='bilinear')
@@ -66,15 +65,15 @@ class Network(nn.Module):
 
         self.conv1 = ConvBNRelu(1, 64)
         self.pool1 = nn.MaxPool2d(2)  # 1/2
-        self.combine1 = Combine(True, 64, 64)
+        self.combine1 = Combine(True, 128, 64)
 
         self.conv2 = Bottleneck(64)
         self.pool2 = nn.MaxPool2d(2)  # 1/4
-        self.combine2 = Combine(True, 64, 64)
+        self.combine2 = Combine(True, 128, 64)
 
         self.conv3 = Bottleneck(64)
         self.pool3 = nn.MaxPool2d(2)  # 1/8
-        self.combine3 = Combine(True, 64, 64)
+        self.combine3 = Combine(True, 128, 64)
 
         self.conv4 = Bottleneck(64)
         self.pool4 = nn.MaxPool2d(2)  # 1/16
