@@ -28,11 +28,11 @@ def _save(img_np, path):
 
 class _Dataset(Dataset):
 
-    def __init__(self, y_dir, x_dir):
+    def __init__(self, y_dir, x_dir, limit):
         self._x = []
         self._y = []
 
-        for file_name in os.listdir(y_dir):
+        for file_name in os.listdir(y_dir)[:limit]:
             y = _load(os.path.join(y_dir, file_name))
             self._y.append(y)
 
@@ -67,20 +67,20 @@ class _Dataset(Dataset):
         x_crop = x[crop_h:crop_h + SIDE_LENGTH, crop_w:crop_w + SIDE_LENGTH]
 
         return (torch.FloatTensor(np.expand_dims(x_crop, axis=0)),
-                np.expand_dims(torch.FloatTensor(y_crop), axis=0))
+                torch.FloatTensor(np.expand_dims(y_crop, axis=0)))
 
 
 class TrainDataset(_Dataset):
-    def __init__(self):
+    def __init__(self, limit):
         LOGGER.info("Loading train data...")
-        super().__init__("./data/train/png/", None)
+        super().__init__("./data/train/png/", None, limit)
         LOGGER.info("Train dataset loaded, %d images" % len(self._y))
 
 
 class TestDataset(_Dataset):
-    def __init__(self):
+    def __init__(self, limit):
         LOGGER.info("Loading test data...")
-        super().__init__("./data/test/png/", "./data/test/png_aug/")
+        super().__init__("./data/test/png/", "./data/test/png_aug/", limit)
         LOGGER.info("Test dataset loaded, %d images" % len(self._y))
 
 

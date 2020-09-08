@@ -17,7 +17,9 @@ LOGGER = logging.getLogger(__name__)
 
 def main():
     argp = ArgumentParser()
+    argp.add_argument("--batch-size", type=int, default=6)
     argp.add_argument("--epochs", type=int, default=60)
+    argp.add_argument("--limit", type=int, default=2**20)
     args = argp.parse_args()
 
     LOGGER.info("Preparing model")
@@ -25,18 +27,19 @@ def main():
     model = network.Network()
     model.to(device)
     criterion = nn.MSELoss()
-    optimizer = optim.SGD(model.parameters(), lr=0.003, momentum=0.9,
+    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9,
                           nesterov=True)
+    # optimizer = optim.Adam(model.parameters(), lr=0.001)
     scheduler = optim.lr_scheduler.MultiplicativeLR(
-        optimizer, lr_lambda=lambda epoch: 0.95)
+        optimizer, lr_lambda=lambda epoch: 0.99)
 
     LOGGER.info("Loading data")
-    trainset = data.TrainDataset()
+    trainset = data.TrainDataset(limit=args.limit)
     trainloader = torch.utils.data.DataLoader(
-        trainset, batch_size=6, shuffle=True, num_workers=4)
-    testset = data.TestDataset()
+        trainset, batch_size=args.batch_size, shuffle=True, num_workers=4)
+    testset = data.TestDataset(limit=args.limit)
     testloader = torch.utils.data.DataLoader(
-        testset, batch_size=6, shuffle=False, num_workers=2)
+        testset, batch_size=args.batch_size, shuffle=False, num_workers=2)
 
     LOGGER.info("Training")
     for epoch in range(args.epochs):
@@ -54,7 +57,7 @@ def main():
             scheduler.step()
             losses.append(loss.item())
 
-        print('Epoch %03d avg. loss: %.3f' % (epoch, statistics.mean(losses)))
+        print('Epoch %03d avg. loss: %.4f' % (epoch, statistics.mean(losses)))
 
         if epoch % 5 == 4:
             with torch.no_grad():

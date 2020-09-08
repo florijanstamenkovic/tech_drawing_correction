@@ -204,11 +204,11 @@ _CONTRAST = RandomOp(_contrast, factor=Uniform(0.4, 1.5))
 _RANDOM_PROCESS = [
         RandomApply((_DILATE_NOISY, 1), (_WRECK_LINES, 1), (_NOISY_OPEN, 1),
                     (None, 1)),
-        RandomApply((_BLUR, 1), (None, 3)),
-        RandomApply((_NOISE, 1), (None, 3)),
-        RandomApply((_GRADIENT, 1), (None, 2)),
-        RandomApply((_BRIGHTNESS, 1), (None, 2)),
-        RandomApply((_CONTRAST, 1), (None, 2))
+        # RandomApply((_BLUR, 1), (None, 3)),
+        # RandomApply((_NOISE, 1), (None, 3)),
+        # RandomApply((_GRADIENT, 1), (None, 2)),
+        # RandomApply((_BRIGHTNESS, 1), (None, 2)),
+        # RandomApply((_CONTRAST, 1), (None, 2))
     ]
 
 
